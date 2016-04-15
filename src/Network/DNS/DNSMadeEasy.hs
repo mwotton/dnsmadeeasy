@@ -1,18 +1,27 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts #-}
+
 module Network.DNS.DNSMadeEasy where
 
 import qualified Network.DNS.Types as DNS
 -- import Data.Aeson
 import Data.Aeson.Types
 import Servant.Client
+import Servant.Common.Req(Req(..))
 import Servant.API
 import Data.Text(Text)
 import Data.Proxy
 import GHC.Generics
 import Control.Monad(mzero)
+import Network.HTTP.Client(Manager)
+import Control.Monad.Trans.Except
+import Control.Monad.IO.Class(liftIO)
+import Data.Time.Clock (getCurrentTime, UTCTime)
+import qualified Servant.Common.Req         as SCR
 
 -- important operations
 --   find the MX records for a particular domain name
@@ -85,11 +94,26 @@ instance FromJSON DNSRecord where
   parseJSON (Object o) = error "stuff"
   parseJSON _ = mzero
 
-type DNSMadeEasyAPI =
-  "dns/managed" :> Get '[JSON] [DNSRecords]
+type DNSMadeEasyAPI = "dns/managed"                      :> Get '[JSON] [DNSRecords]
+--                 :<|> "dns/managed" :> Capture "id" Text :> Get '[JSON] DNSRecord
+
+getRecords m = client dnsMadeEasyAPI m  (BaseUrl Https "api.dnsmadeeasy.com/V2.0" 443 "/")
 
 
-getRecords = client dnsMadeEasyAPI (BaseUrl Https "api.dnsmadeeasy.com/V2.0" 443)
+-- | The datatype we'll use to authenticate a request. If we were wrapping
+-- something like OAuth, this might be a Bearer token.
+type instance AuthClientData (AuthProtect "cookie-auth") = String
+
+-- | A method to authenticate a request
+authenticateReq :: (String,String,UTCTime) -> Req -> Req
+authenticateReq  (api,secret, time) req = foldl (\r (h,v) -> SCR.addHeader h v r)  req (secretHeaders time api secret)
+
+
+secretHeaders :: UTCTime -> String -> String -> [(String,String)]
+secretHeaders = undefined
+
+
+runProtected function = runExceptT (liftIO getCurrentTime >>= \d -> function (mkAuthenticateReq ("api","secret", d) authenticateReq))
 
 dnsMadeEasyAPI :: Proxy DNSMadeEasyAPI
 dnsMadeEasyAPI = Proxy
