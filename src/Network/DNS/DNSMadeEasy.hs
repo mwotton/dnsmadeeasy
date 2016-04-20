@@ -12,6 +12,7 @@ module Network.DNS.DNSMadeEasy
 
 import           Control.Monad.IO.Class        (liftIO)
 import           Control.Monad.Trans.Except
+import           Data.Aeson                    (Value)
 import           Data.Proxy
 import           Data.Text                     (Text)
 import           Data.Time                     (defaultTimeLocale)
@@ -30,20 +31,46 @@ import qualified Servant.Common.Req            as SCR
 newtype DMEAuth = DMEAuth (String,String,UTCTime)
 
 type DNSMadeEasyAPI =
-       "dns/managed"    :> AuthProtect "dmeAuth"
-                        :> Get '[JSON] DNSManagedSingle
-  :<|> "dns/managed/id" :>  Capture "domain" Text
+--       "dns/managed"    :> AuthProtect "dmeAuth"
+--                        :> Get '[JSON] DNSManagedSingle
+--  :<|>
+       "dns/managed/id" :>  Capture "domain" Text
                         :> AuthProtect "dmeAuth"
                         :> Get '[JSON] ManagedRecords
   :<|> "dns/managed"    :> Capture "id" RecordID
                         :> "records"
                         :> AuthProtect "dmeAuth"
                         :> Get '[JSON] RecordsFor
+   -- Destructive part!
+  :<|> "dns/managed"    :> Capture "id" RecordID :> "records"
+                        :> ReqBody '[JSON] PostRecord
+                        :> AuthProtect "dmeAuth"
+                        :> Post '[JSON] DNSRecord
+  :<|> "dns/managed"    :> Capture "id" RecordID :> "records"
+                        :> Capture "recordId" RecordID
+                        :> AuthProtect "dmeAuth"
+                        -- this is bogus - we shouldn't
+                        -- get anything back, but
+                        -- Delete '[NoContent] ()
+                        -- and
+                        -- Delete '[PlainText] ()
+                        -- barf.
+                        :> Delete '[PlainText] Text
 
-getRecords  :<|>
-  getRecord :<|>
-  recordsFor =
+
+getRecord :<|>
+  recordsFor :<|>
+  postRecord :<|>
+  -- !!! WARNING !!!
+  --
+  -- because dnsmadeeasy incorrectly serves no content with a 200
+  -- response code, delete will always fail with
+  -- (UnsupportedContentType "application/json"  "")
+  -- I don't know how to catch it within the ClientM monad, so for the
+  -- moment it stays a wart.
+  deleteRecord =
   client  dnsMadeEasyAPI
+
 
 -- | The datatype we'll use to authenticate a request. If we were wrapping
 -- something like OAuth, this might be a Bearer token.
@@ -78,9 +105,9 @@ protectedRunner :: (AuthClientData a ~ DMEAuth)
                 -> IO (Either e a1)
 protectedRunner api secret function  = do
   manager <- HC.newManager
---     (managerSetProxy (useProxy $ HC.Proxy "127.0.0.1" 8888)
+     (managerSetProxy (useProxy $ HC.Proxy "127.0.0.1" 8888)
      tlsManagerSettings
---     )
+     )
   runExceptT (authRequest >>= \auth -> function auth manager baseURL)
 
   where authRequest = do

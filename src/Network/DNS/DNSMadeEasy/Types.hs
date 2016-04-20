@@ -44,6 +44,9 @@ data Location = DEFAULT
 instance FromJSON Location where
   parseJSON = genericParseJSON defaultOptions
 
+instance ToJSON Location where
+  toJSON = genericToJSON defaultOptions
+
 
 
 data Source = DomainSpecific | FromTemplate
@@ -119,6 +122,26 @@ instance FromJSON DNSRecord where
 instance FromJSON SRV where
   parseJSON = error "SRV parse"
 
+-- not really sure why what we post is so different to
+-- what we get.
+data PostRecord =
+  PostRecord
+  { postName        :: Text
+    -- this is really pretty dreadful,
+    -- probably needs hand-crafted ToJSON instances
+    -- and a proper datatype
+  , postType        :: Text
+  , postMxLevel     :: Maybe Int
+  , postValue       :: Text
+  , postTtl         :: Integer
+  , postGtdLocation :: Location
+  } deriving (Generic, Show,Eq)
+
+instance ToJSON PostRecord where
+  toJSON = genericToJSON (mkOptions 4)
+
+
+--    body = {"name" => name, "type" => type, "value" => value, "ttl" => 3600, "gtdLocation" => "DEFAULT"}
 
 
 data ManagedRecords = ManagedRecords
@@ -128,7 +151,7 @@ data ManagedRecords = ManagedRecords
   , mrecFolderId            :: Integer
   , mrecName                :: Text
   , mrecProcessMulti        :: Bool
-  , mrecId                  :: Integer
+  , mrecId                  :: RecordID
   , mrecUpdated             :: Integer
   , mrecDelegateNameServers :: [Text]
   , mrecNameServers         :: [NameServer]
@@ -191,5 +214,4 @@ data RecordsFor =
 
 
 instance FromJSON RecordsFor where
-  parseJSON o = error $ "recordsFor: " <> BL.unpack (encodePretty o)
-  -- genericParseJSON (mkOptions undefined)
+  parseJSON = genericParseJSON (mkOptions 4)
