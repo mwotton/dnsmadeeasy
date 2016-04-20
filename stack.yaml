@@ -13,7 +13,7 @@ extra-deps:
 - 'servant-client-0.7'
 - 'servant-0.7'
 - 'Crypto-4.2.5.1'
-- 'simplehex-0.1.2'
+- 'hex-0.1.2'
 # - 'time-http-0.5'
 
 # Override default flag values for local packages and extra-deps
