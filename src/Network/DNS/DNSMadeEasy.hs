@@ -49,25 +49,12 @@ type DNSMadeEasyAPI =
   :<|> "dns/managed"    :> Capture "id" RecordID :> "records"
                         :> Capture "recordId" RecordID
                         :> AuthProtect "dmeAuth"
-                        -- this is bogus - we shouldn't
-                        -- get anything back, but
-                        -- Delete '[NoContent] ()
-                        -- and
-                        -- Delete '[PlainText] ()
-                        -- barf.
-                        :> Delete '[PlainText] Text
+                        :> Delete '[NoContent] NoContent
 
 
 getRecord :<|>
   recordsFor :<|>
   postRecord :<|>
-  -- !!! WARNING !!!
-  --
-  -- because dnsmadeeasy incorrectly serves no content with a 200
-  -- response code, delete will always fail with
-  -- (UnsupportedContentType "application/json"  "")
-  -- I don't know how to catch it within the ClientM monad, so for the
-  -- moment it stays a wart.
   deleteRecord =
   client  dnsMadeEasyAPI
 
