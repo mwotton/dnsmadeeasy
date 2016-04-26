@@ -6,7 +6,11 @@
 
 module Network.DNS.DNSMadeEasy
        (module Network.DNS.DNSMadeEasy
-       ,module Network.DNS.DNSMadeEasy.Types)
+       ,module Network.DNS.DNSMadeEasy.Types
+       ,BaseUrl
+       ,AuthClientData
+       ,AuthenticateReq
+       )
        where
 
 import           Control.Monad.IO.Class        (liftIO)
