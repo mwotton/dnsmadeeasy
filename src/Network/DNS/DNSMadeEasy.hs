@@ -23,13 +23,14 @@ import           Data.Time.Clock               (UTCTime, getCurrentTime)
 import           Data.Time.Format              (formatTime)
 import           Network.DNS.DNSMadeEasy.Types
 import           Network.DNS.SHAHelper
-import           Network.HTTP.Client           (Manager, managerSetProxy,
-                                                useProxy)
+import           Network.HTTP.Client           (Manager, managerModifyRequest,
+                                                managerSetProxy, useProxy)
 import qualified Network.HTTP.Client           as HC
 import           Network.HTTP.Client.TLS       (tlsManagerSettings)
 import           Servant.API
 import           Servant.Client
 import qualified Servant.Common.Req            as SCR
+import           System.IO                     (hFlush, stdout)
 
 newtype DMEAuth = DMEAuth (String,String,UTCTime)
 
@@ -95,9 +96,9 @@ protectedRunner :: (AuthClientData a ~ DMEAuth)
                 -> IO (Either e a1)
 protectedRunner api secret function  = do
   manager <- HC.newManager
---     (managerSetProxy (useProxy $ HC.Proxy "127.0.0.1" 8888)
      tlsManagerSettings
---     )
+       -- { managerModifyRequest = \x -> print ("outgoing"::Text,x) >> hFlush stdout >> return x }
+
   runExceptT (authRequest >>= \auth -> function auth manager baseURL)
 
   where authRequest = do
