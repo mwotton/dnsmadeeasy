@@ -103,7 +103,7 @@ protectedRunner api secret function  = do
   where authRequest = do
           t <- liftIO getCurrentTime
           return $ mkAuthenticateReq (DMEAuth (api, secret, t)) authenticateReq
-        baseURL = BaseUrl Http "api.dnsmadeeasy.com" 80 "/V2.0"
+        baseURL = BaseUrl Https "api.dnsmadeeasy.com" 443 "/V2.0"
 
 dnsMadeEasyAPI :: Proxy DNSMadeEasyAPI
 dnsMadeEasyAPI = Proxy
