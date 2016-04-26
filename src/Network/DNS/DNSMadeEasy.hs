@@ -95,9 +95,9 @@ protectedRunner :: (AuthClientData a ~ DMEAuth)
                 -> IO (Either e a1)
 protectedRunner api secret function  = do
   manager <- HC.newManager
-     (managerSetProxy (useProxy $ HC.Proxy "127.0.0.1" 8888)
+--     (managerSetProxy (useProxy $ HC.Proxy "127.0.0.1" 8888)
      tlsManagerSettings
-     )
+--     )
   runExceptT (authRequest >>= \auth -> function auth manager baseURL)
 
   where authRequest = do
